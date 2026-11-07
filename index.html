@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLOCKFALL - Compañero Digital</title>
+  <title>BLOCKFALL - Show Companion</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     :root {
       --bg-color: #0b0f19;
@@ -11,20 +12,20 @@
       --accent-color: #00e5ff;
       --text-color: #e0e6ed;
       --gold: #ffb703;
+      --danger: #ff0055;
     }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       margin: 0;
-      padding: 20px;
+      padding: 15px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      min-height: 100vh;
     }
     .container {
-      max-width: 500px;
+      max-width: 480px;
       width: 100%;
       background: var(--card-bg);
       border: 2px solid var(--accent-color);
@@ -32,121 +33,220 @@
       padding: 20px;
       box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
       box-sizing: border-box;
-    }
-    h1 {
       text-align: center;
-      color: var(--accent-color);
-      margin-top: 0;
-      text-transform: uppercase;
-      letter-spacing: 2px;
     }
-    .level-select {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    button {
+    h1 { color: var(--accent-color); margin-top: 0; letter-spacing: 2px; }
+    .btn {
       background: #22304d;
       color: var(--text-color);
       border: 1px solid var(--accent-color);
       padding: 12px;
       border-radius: 8px;
       font-weight: bold;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:hover, button.active {
-      background: var(--accent-color);
-      color: #000;
-      box-shadow: 0 0 10px var(--accent-color);
-    }
-    .display-box {
-      background: #0d1424;
-      border: 1px solid #2d3e63;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    .result-title {
-      font-size: 0.9em;
-      color: #8899a6;
-      margin-bottom: 5px;
-    }
-    .result-value {
-      font-size: 1.4em;
-      font-weight: bold;
-      color: var(--gold);
-    }
-    .btn-action {
       width: 100%;
-      padding: 15px;
-      font-size: 1.1em;
-      background: var(--gold);
-      color: #000;
-      border: none;
-      margin-top: 10px;
+      margin: 8px 0;
+      font-size: 1em;
+      cursor: pointer;
     }
-    .btn-action:hover {
-      background: #ffa000;
-      box-shadow: 0 0 12px var(--gold);
+    .btn-gold { background: var(--gold); color: #000; border: none; font-size: 1.1em; }
+    .btn-danger { background: var(--danger); color: #fff; border: none; }
+    input {
+      width: 80%; padding: 10px; margin: 5px;
+      border-radius: 6px; border: 1px solid var(--accent-color);
+      background: #0d1424; color: #fff; text-align: center;
     }
+    .player-card {
+      background: #0d1424; border: 1px solid #2d3e63;
+      padding: 10px; margin: 8px 0; border-radius: 6px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #reader { width: 100%; margin-top: 15px; border-radius: 8px; overflow: hidden; }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+
   <div class="container">
     <h1>BLOCKFALL</h1>
-    <p style="text-align: center; font-size: 0.9em;">Selecciona o escanea el nivel de tu carta:</p>
-    <div class="level-select">
-      <button onclick="selectLevel(1)">NV. 1</button>
-      <button onclick="selectLevel(2)">NV. 2</button>
-      <button onclick="selectLevel(3)">NV. 3</button>
-      <button onclick="selectLevel(4)">NV. 4</button>
-      <button onclick="selectLevel(5)">NV. 5</button>
-      <button onclick="selectLevel(6)">NV. 6</button>
-      <button onclick="selectLevel(7)">NV. 7</button>
-      <button onclick="selectLevel(8)">NV. 8</button>
+
+    <!-- INICIO -->
+    <div id="sec-start">
+      <p>Bienvenido al show macabro de supervivencia.</p>
+      <button class="btn btn-gold" onclick="showPlayerConfig()">INICIAR PARTIDA</button>
     </div>
-    <div class="display-box">
-      <div class="result-title">Nivel Seleccionado</div>
-      <div id="lvl-display" class="result-value">Ninguno</div>
+
+    <!-- CONFIGURACIÓN JUGADORES -->
+    <div id="sec-config" class="hidden">
+      <h3>Número de Participantes (2-6)</h3>
+      <input type="number" id="num-players" min="2" max="6" value="2" onchange="generateNameInputs()">
+      <div id="name-inputs"></div>
+      <button class="btn btn-gold" onclick="startGame()">¡EMPIEZA EL SHOW!</button>
     </div>
-    <div class="display-box">
-      <div class="result-title">Tramo de Fichas Necesario</div>
-      <div id="tokens-display" class="result-value">-</div>
+
+    <!-- PANEL DE RONDAS -->
+    <div id="sec-rounds" class="hidden">
+      <h2 id="round-title">RONDA 1 DE 3</h2>
+      <div id="players-round-list"></div>
+      <button id="btn-next-round" class="btn btn-gold hidden" onclick="nextRound()">AVANZAR DE RONDA</button>
+      <button id="btn-show-ranking" class="btn btn-gold hidden" onclick="showRanking()">¿QUIERES SABER QUIÉN VA GANANDO?</button>
     </div>
-    <button class="btn-action" onclick="resolveReward()">Resolver Recompensa</button>
-    <div class="display-box" style="margin-top: 15px;">
-      <div class="result-title">Resultado / Recompensa</div>
-      <div id="reward-display" class="result-value">-</div>
+
+    <!-- ESCÁNER QR -->
+    <div id="sec-scanner" class="hidden">
+      <h3 id="scanner-player-name">Escaneando...</h3>
+      <div id="reader"></div>
+      <button class="btn btn-danger" onclick="cancelScan()">Cancelar Escaneo</button>
+    </div>
+
+    <!-- RANKING -->
+    <div id="sec-ranking" class="hidden">
+      <h2>CLASIFICACIÓN PROVISIONAL</h2>
+      <div id="ranking-list"></div>
+      <button class="btn" onclick="location.reload()">NUEVA PARTIDA</button>
     </div>
   </div>
+
   <script>
-    const gameData = {
-      1: { tokens: '1 Ficha', secrets: ['1 M$ (100%)'] },
-      2: { tokens: '2 Fichas', secrets: ['2 M$', '3 M$'] },
-      3: { tokens: '3 Fichas', secrets: ['3 M$', '4 M$', '5 M$'] },
-      4: { tokens: '4 Fichas', secrets: ['4 M$', '5 M$', '6 M$', '7 M$'] },
-      5: { tokens: '5 Fichas', secrets: ['5 M$', '6 M$', '7 M$', '8 M$', '9 M$'] },
-      6: { tokens: '6 Fichas', secrets: ['6 M$', '7 M$', '8 M$', '9 M$', '10 M$'] },
-      7: { tokens: '8 Fichas', secrets: ['8 M$', '9 M$', '10 M$', '11 M$'] },
-      8: { tokens: '9 Fichas', secrets: ['9 M$', '10 M$', '11 M$', '12 M$'] }
+    let players = [];
+    let currentRound = 1;
+    let activePlayerIndex = null;
+    let html5QrCode = null;
+
+    const probabilities = {
+      "BF_NV_1_SECRET": [1],
+      "BF_NV_2_SECRET": [2,2,2, 3,3,3],
+      "BF_NV_3_SECRET": [3,3,3, 4,4,4,4, 5,5,5],
+      "BF_NV_4_SECRET": [4,4,4, 5,5,5,5, 6,6,6, 7,7],
+      "BF_NV_5_SECRET": [5,5, 6,6,6, 7,7,7, 8,8, 9],
+      "BF_NV_6_SECRET": [6, 7,7, 8,8, 9, 10],
+      "BF_NV_7_SECRET": [8, 9, 10, 11],
+      "BF_NV_8_SECRET": [9, 10, 11, 12]
     };
-    let currentLevel = null;
-    function selectLevel(lvl) {
-      currentLevel = lvl;
-      document.getElementById('lvl-display').innerText = 'Nivel ' + lvl;
-      document.getElementById('tokens-display').innerText = gameData[lvl].tokens;
-      document.getElementById('reward-display').innerText = 'Listo para resolver...';
+
+    function showPlayerConfig() {
+      document.getElementById('sec-start').classList.add('hidden');
+      document.getElementById('sec-config').classList.remove('hidden');
+      generateNameInputs();
     }
-    function resolveReward() {
-      if (!currentLevel) {
-        alert('Por favor, selecciona primero un nivel de carta.');
-        return;
+
+    function generateNameInputs() {
+      const count = parseInt(document.getElementById('num-players').value);
+      const container = document.getElementById('name-inputs');
+      container.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        container.innerHTML += `<input type="text" maxlength="10" placeholder="Jugador ${i+1}" id="pname-${i}"><br>`;
       }
-      const rewards = gameData[currentLevel].secrets;
-      const finalReward = rewards[Math.floor(Math.random() * rewards.length)];
-      document.getElementById('reward-display').innerText = finalReward;
+    }
+
+    function startGame() {
+      const count = parseInt(document.getElementById('num-players').value);
+      players = [];
+      for (let i = 0; i < count; i++) {
+        const name = document.getElementById(`pname-${i}`).value.trim() || `Jugador 0${i+1}`;
+        players.push({ name: name, score: 0, scannedRounds: [false, false, false] });
+      }
+      document.getElementById('sec-config').classList.add('hidden');
+      document.getElementById('sec-rounds').classList.remove('hidden');
+      renderRound();
+    }
+
+    function renderRound() {
+      document.getElementById('round-title').innerText = `RONDA ${currentRound} DE 3`;
+      const list = document.getElementById('players-round-list');
+      list.innerHTML = '';
+
+      let allScanned = true;
+      players.forEach((p, idx) => {
+        const isScanned = p.scannedRounds[currentRound - 1];
+        if (!isScanned) allScanned = false;
+
+        list.innerHTML += `
+          <div class="player-card">
+            <span><strong>${p.name}</strong></span>
+            ${isScanned 
+              ? '<span style="color:#00e5ff;">✓ Escaneado</span>' 
+              : `<button class="btn" style="width:auto;" onclick="startScan(${idx})">Escanear QR</button>`}
+          </div>`;
+      });
+
+      if (allScanned) {
+        if (currentRound < 3) {
+          document.getElementById('btn-next-round').classList.remove('hidden');
+        } else {
+          document.getElementById('btn-show-ranking').classList.remove('hidden');
+        }
+      } else {
+        document.getElementById('btn-next-round').classList.add('hidden');
+        document.getElementById('btn-show-ranking').classList.add('hidden');
+      }
+    }
+
+    function startScan(playerIdx) {
+      activePlayerIndex = playerIdx;
+      document.getElementById('sec-rounds').classList.add('hidden');
+      document.getElementById('sec-scanner').classList.remove('hidden');
+      document.getElementById('scanner-player-name').innerText = `Escaneando carta de ${players[playerIdx].name}`;
+
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        onScanSuccess
+      ).catch(err => alert("Error al acceder a la cámara: " + err));
+    }
+
+    function onScanSuccess(decodedText) {
+      if (probabilities[decodedText]) {
+        html5QrCode.stop().then(() => {
+          const rewards = probabilities[decodedText];
+          const reward = rewards[Math.floor(Math.random() * rewards.length)];
+          players[activePlayerIndex].score += reward;
+          players[activePlayerIndex].scannedRounds[currentRound - 1] = true;
+
+          alert(`¡Carta Escaneada!\n${players[activePlayerIndex].name} ha obtenido ${reward} Millones de Créditos.`);
+          
+          document.getElementById('sec-scanner').classList.add('hidden');
+          document.getElementById('sec-rounds').classList.remove('hidden');
+          renderRound();
+        });
+      } else {
+        alert("QR no reconocido. Asegúrate de escanear una carta de puntuación válida.");
+      }
+    }
+
+    function cancelScan() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById('sec-scanner').classList.add('hidden');
+          document.getElementById('sec-rounds').classList.remove('hidden');
+        });
+      }
+    }
+
+    function nextRound() {
+      currentRound++;
+      renderRound();
+    }
+
+    function showRanking() {
+      document.getElementById('sec-rounds').classList.add('hidden');
+      document.getElementById('sec-ranking').classList.remove('hidden');
+
+      const sorted = [...players].sort((a, b) => b.score - a.score);
+      const list = document.getElementById('ranking-list');
+      list.innerHTML = '';
+
+      sorted.forEach((p, idx) => {
+        list.innerHTML += `
+          <div class="player-card" style="border-color:${idx === 0 ? 'var(--gold)' : 'var(--accent-color)'}">
+            <span><strong>#${idx + 1} ${p.name}</strong></span>
+            <span style="color:var(--gold); font-weight:bold;">${p.score}.000.000 $</span>
+          </div>`;
+      });
+    }
+  </script>
+</body>
+</html>
     }
   </script>
 </body>
