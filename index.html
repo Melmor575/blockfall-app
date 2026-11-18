@@ -1,253 +1,346 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BLOCKFALL - Show Companion</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
-  <style>
-    :root {
-      --bg-color: #0b0f19;
-      --card-bg: #161f33;
-      --accent-color: #00e5ff;
-      --text-color: #e0e6ed;
-      --gold: #ffb703;
-      --danger: #ff0055;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 15px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .container {
-      max-width: 480px;
-      width: 100%;
-      background: var(--card-bg);
-      border: 2px solid var(--accent-color);
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
-      box-sizing: border-box;
-      text-align: center;
-    }
-    h1 { color: var(--accent-color); margin-top: 0; letter-spacing: 2px; }
-    .btn {
-      background: #22304d;
-      color: var(--text-color);
-      border: 1px solid var(--accent-color);
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      width: 100%;
-      margin: 8px 0;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    .btn-gold { background: var(--gold); color: #000; border: none; font-size: 1.1em; }
-    .btn-danger { background: var(--danger); color: #fff; border: none; }
-    input {
-      width: 80%; padding: 10px; margin: 5px;
-      border-radius: 6px; border: 1px solid var(--accent-color);
-      background: #0d1424; color: #fff; text-align: center;
-    }
-    .player-card {
-      background: #0d1424; border: 1px solid #2d3e63;
-      padding: 10px; margin: 8px 0; border-radius: 6px;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    #reader { width: 100%; margin-top: 15px; border-radius: 8px; overflow: hidden; }
-    .hidden { display: none; }
-  </style>
-</head>
-<body>
-
-  <div class="container">
-    <h1>BLOCKFALL</h1>
-
-    <!-- INICIO -->
-    <div id="sec-start">
-      <p>Bienvenido al show macabro de supervivencia.</p>
-      <button class="btn btn-gold" onclick="showPlayerConfig()">INICIAR PARTIDA</button>
-    </div>
-
-    <!-- CONFIGURACIÓN JUGADORES -->
-    <div id="sec-config" class="hidden">
-      <h3>Número de Participantes (2-6)</h3>
-      <input type="number" id="num-players" min="2" max="6" value="2" onchange="generateNameInputs()">
-      <div id="name-inputs"></div>
-      <button class="btn btn-gold" onclick="startGame()">¡EMPIEZA EL SHOW!</button>
-    </div>
-
-    <!-- PANEL DE RONDAS -->
-    <div id="sec-rounds" class="hidden">
-      <h2 id="round-title">RONDA 1 DE 3</h2>
-      <div id="players-round-list"></div>
-      <button id="btn-next-round" class="btn btn-gold hidden" onclick="nextRound()">AVANZAR DE RONDA</button>
-      <button id="btn-show-ranking" class="btn btn-gold hidden" onclick="showRanking()">¿QUIERES SABER QUIÉN VA GANANDO?</button>
-    </div>
-
-    <!-- ESCÁNER QR -->
-    <div id="sec-scanner" class="hidden">
-      <h3 id="scanner-player-name">Escaneando...</h3>
-      <div id="reader"></div>
-      <button class="btn btn-danger" onclick="cancelScan()">Cancelar Escaneo</button>
-    </div>
-
-    <!-- RANKING -->
-    <div id="sec-ranking" class="hidden">
-      <h2>CLASIFICACIÓN PROVISIONAL</h2>
-      <div id="ranking-list"></div>
-      <button class="btn" onclick="location.reload()">NUEVA PARTIDA</button>
-    </div>
-  </div>
-
-  <script>
-    let players = [];
-    let currentRound = 1;
-    let activePlayerIndex = null;
-    let html5QrCode = null;
-
-    const probabilities = {
-      "BF_NV_1_SECRET": [1],
-      "BF_NV_2_SECRET": [2,2,2, 3,3,3],
-      "BF_NV_3_SECRET": [3,3,3, 4,4,4,4, 5,5,5],
-      "BF_NV_4_SECRET": [4,4,4, 5,5,5,5, 6,6,6, 7,7],
-      "BF_NV_5_SECRET": [5,5, 6,6,6, 7,7,7, 8,8, 9],
-      "BF_NV_6_SECRET": [6, 7,7, 8,8, 9, 10],
-      "BF_NV_7_SECRET": [8, 9, 10, 11],
-      "BF_NV_8_SECRET": [9, 10, 11, 12]
-    };
-
-    function showPlayerConfig() {
-      document.getElementById('sec-start').classList.add('hidden');
-      document.getElementById('sec-config').classList.remove('hidden');
-      generateNameInputs();
-    }
-
-    function generateNameInputs() {
-      const count = parseInt(document.getElementById('num-players').value);
-      const container = document.getElementById('name-inputs');
-      container.innerHTML = '';
-      for (let i = 0; i < count; i++) {
-        container.innerHTML += `<input type="text" maxlength="10" placeholder="Jugador ${i+1}" id="pname-${i}"><br>`;
-      }
-    }
-
-    function startGame() {
-      const count = parseInt(document.getElementById('num-players').value);
-      players = [];
-      for (let i = 0; i < count; i++) {
-        const name = document.getElementById(`pname-${i}`).value.trim() || `Jugador 0${i+1}`;
-        players.push({ name: name, score: 0, scannedRounds: [false, false, false] });
-      }
-      document.getElementById('sec-config').classList.add('hidden');
-      document.getElementById('sec-rounds').classList.remove('hidden');
-      renderRound();
-    }
-
-    function renderRound() {
-      document.getElementById('round-title').innerText = `RONDA ${currentRound} DE 3`;
-      const list = document.getElementById('players-round-list');
-      list.innerHTML = '';
-
-      let allScanned = true;
-      players.forEach((p, idx) => {
-        const isScanned = p.scannedRounds[currentRound - 1];
-        if (!isScanned) allScanned = false;
-
-        list.innerHTML += `
-          <div class="player-card">
-            <span><strong>${p.name}</strong></span>
-            ${isScanned 
-              ? '<span style="color:#00e5ff;">✓ Escaneado</span>' 
-              : `<button class="btn" style="width:auto;" onclick="startScan(${idx})">Escanear QR</button>`}
-          </div>`;
-      });
-
-      if (allScanned) {
-        if (currentRound < 3) {
-          document.getElementById('btn-next-round').classList.remove('hidden');
-        } else {
-          document.getElementById('btn-show-ranking').classList.remove('hidden');
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLOCKFALL - El Show</title>
+    <!-- Tailwind CSS para diseño futurista / neón -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Librería de Escaneo QR -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0f0c1b;
+            color: #fff;
         }
-      } else {
-        document.getElementById('btn-next-round').classList.add('hidden');
-        document.getElementById('btn-show-ranking').classList.add('hidden');
-      }
-    }
+        .neon-glow {
+            text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f, 0 0 30px #ff007f;
+        }
+        .neon-box {
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+            border: 2px solid #00f3ff;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4">
 
-    function startScan(playerIdx) {
-      activePlayerIndex = playerIdx;
-      document.getElementById('sec-rounds').classList.add('hidden');
-      document.getElementById('sec-scanner').classList.remove('hidden');
-      document.getElementById('scanner-player-name').innerText = `Escaneando carta de ${players[playerIdx].name}`;
+    <!-- CABECERA -->
+    <header class="w-full max-w-md text-center py-4">
+        <h1 class="text-3xl font-black tracking-wider text-pink-500 neon-glow">BLOCKFALL</h1>
+        <p class="text-xs text-cyan-400 tracking-widest mt-1">THE MACABRE SHOW</p>
+    </header>
 
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        onScanSuccess
-      ).catch(err => alert("Error al acceder a la cámara: " + err));
-    }
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main id="app" class="w-full max-w-md bg-purple-950/40 neon-box rounded-2xl p-6 mb-4">
+        
+        <!-- Pantalla de Inicio -->
+        <div id="screen-welcome" class="text-center space-y-6">
+            <div class="py-6">
+                <span class="inline-block bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest animate-pulse">Temporada 2026</span>
+                <h2 class="text-xl font-bold mt-3 text-cyan-300">¡Sobrevive al bloque o piésdelo todo!</h2>
+            </div>
+            <button onclick="app.iniciarConfiguracion()" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black py-4 rounded-xl text-lg shadow-lg tracking-wider transition transform active:scale-95">
+                INICIAR PARTIDA
+            </button>
+        </div>
 
-    function onScanSuccess(decodedText) {
-      if (probabilities[decodedText]) {
-        html5QrCode.stop().then(() => {
-          const rewards = probabilities[decodedText];
-          const reward = rewards[Math.floor(Math.random() * rewards.length)];
-          players[activePlayerIndex].score += reward;
-          players[activePlayerIndex].scannedRounds[currentRound - 1] = true;
+        <!-- Pantalla de Configuración de Jugadores -->
+        <div id="screen-setup" class="hidden space-y-4">
+            <h2 class="text-lg font-bold text-center text-cyan-400">NÚMERO DE JUGADORES (2-6)</h2>
+            <div class="grid grid-cols-5 gap-2">
+                <button onclick="app.setNumJugadores(2)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">2</button>
+                <button onclick="app.setNumJugadores(3)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">3</button>
+                <button onclick="app.setNumJugadores(4)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">4</button>
+                <button onclick="app.setNumJugadores(5)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">5</button>
+                <button onclick="app.setNumJugadores(6)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">6</button>
+            </div>
+            <div id="player-inputs" class="space-y-3 mt-4"></div>
+            <button id="btn-start-game" onclick="app.comenzarShow()" class="hidden w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl text-md tracking-wider transition">
+                ¡EMPIEZA EL SHOW!
+            </button>
+        </div>
 
-          alert(`¡Carta Escaneada!\n${players[activePlayerIndex].name} ha obtenido ${reward} Millones de Créditos.`);
-          
-          document.getElementById('sec-scanner').classList.add('hidden');
-          document.getElementById('sec-rounds').classList.remove('hidden');
-          renderRound();
-        });
-      } else {
-        alert("QR no reconocido. Asegúrate de escanear una carta de puntuación válida.");
-      }
-    }
+        <!-- Pantalla de Selección de Ronda / Menú Principal de Turno -->
+        <div id="screen-hub" class="hidden space-y-4">
+            <div class="text-center bg-black/40 p-3 rounded-xl border border-cyan-500/30">
+                <p id="hub-player-turn" class="text-sm text-cyan-300 font-bold">TURNO DE: JUGADOR</p>
+                <p class="text-xs text-gray-400 mt-1">Créditos acumulados: <span id="hub-player-score" class="text-pink-400 font-bold">0 M$</span></p>
+            </div>
 
-    function cancelScan() {
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          document.getElementById('sec-scanner').classList.add('hidden');
-          document.getElementById('sec-rounds').classList.remove('hidden');
-        });
-      }
-    }
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Selecciona tu Ronda de Retirada / Escaneo</h3>
+            
+            <div class="space-y-2">
+                <button onclick="app.lanzarEscaneo(1)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
+                    <span class="font-bold">RONDAS 1 - 2</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 1 (QRs 1-2)</span>
+                </button>
+                <button onclick="app.lanzarEscaneo(3)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
+                    <span class="font-bold">RONDAS 3 - 4 - 5</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 2 (QRs 3)</span>
+                </button>
+                <button onclick="app.lanzarEscaneo(6)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
+                    <span class="font-bold">RONDAS 6 - 7</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 3 (QRs 7)</span>
+                </button>
+                <button onclick="app.lanzarEscaneo(8)" class="w-full bg-pink-900/60 hover:bg-pink-800 border border-pink-500 p-3 rounded-xl flex justify-between items-center transition">
+                    <span class="font-bold text-pink-300">RONDA 8 (FINAL)</span>
+                    <span class="text-xs bg-pink-600 px-2 py-1 rounded">Tramo 4 (QRs 8)</span>
+                </button>
+            </div>
 
-    function nextRound() {
-      currentRound++;
-      renderRound();
-    }
+            <button onclick="app.siguienteJugador()" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-2 rounded-xl text-xs mt-4">
+                Saltar / Pasar Turno sin escanear
+            </button>
+        </div>
 
-    function showRanking() {
-      document.getElementById('sec-rounds').classList.add('hidden');
-      document.getElementById('sec-ranking').classList.remove('hidden');
+        <!-- Pantalla de Escaneo QR -->
+        <div id="screen-scanner" class="hidden space-y-4 text-center">
+            <h3 class="text-sm font-bold text-cyan-400">ESCANEA TU CARTA DE TRAMO</h3>
+            <div id="reader" class="w-full rounded-xl overflow-hidden border border-cyan-500"></div>
+            <button onclick="app.cancelarEscaneo()" class="w-full bg-red-600/80 hover:bg-red-600 text-white font-bold py-2 rounded-xl text-xs">
+                Cancelar Escaneo
+            </button>
+        </div>
 
-      const sorted = [...players].sort((a, b) => b.score - a.score);
-      const list = document.getElementById('ranking-list');
-      list.innerHTML = '';
+        <!-- Pantalla de Introducción de Fichas Salvadas (Paso 2) -->
+        <div id="screen-fichas" class="hidden space-y-4 text-center">
+            <div class="bg-cyan-950/40 p-4 rounded-xl border border-cyan-500">
+                <h3 class="text-xs text-cyan-300 font-bold">¡PREMIO DE TRAMO OBTENIDO!</h3>
+                <p id="result-qr-credits" class="text-3xl font-black text-pink-400 mt-2">0 M$</p>
+            </div>
+            
+            <div class="space-y-2">
+                <label class="block text-xs font-bold text-gray-300 uppercase">¿Cuántas fichas de tablero has salvado?</label>
+                <div class="flex items-center justify-center space-x-4">
+                    <button onclick="app.modificarFichasTablero(-1)" class="bg-purple-800 w-12 h-12 rounded-xl text-2xl font-black">-</button>
+                    <span id="input-fichas-count" class="text-2xl font-black text-cyan-400 w-12">0</span>
+                    <button onclick="app.modificarFichasTablero(1)" class="bg-purple-800 w-12 h-12 rounded-xl text-2xl font-black">+</button>
+                </div>
+                <p class="text-[10px] text-gray-400">Cada ficha salvada otorga +1 M$ (ajustable en mesa).</p>
+            </div>
 
-      sorted.forEach((p, idx) => {
-        list.innerHTML += `
-          <div class="player-card" style="border-color:${idx === 0 ? 'var(--gold)' : 'var(--accent-color)'}">
-            <span><strong>#${idx + 1} ${p.name}</strong></span>
-            <span style="color:var(--gold); font-weight:bold;">${p.score}.000.000 $</span>
-          </div>`;
-      });
-    }
-  </script>
-</body>
-</html>
-    }
-  </script>
+            <button onclick="app.confirmarTurnoJugador()" class="w-full bg-cyan-500 hover:bg-cyan-400 text-black font-black py-3 rounded-xl tracking-wider">
+                CONFIRMAR Y PASAR MÓVIL
+            </button>
+        </div>
+
+        <!-- Pantalla de Pregunta Final (Ranking) -->
+        <div id="screen-pre-ranking" class="hidden text-center space-y-6 py-4">
+            <div class="bg-pink-950/40 p-4 rounded-xl border border-pink-500">
+                <h3 class="text-lg font-bold text-pink-400">¡FIN DE LA RONDA / PARTIDA!</h3>
+                <p class="text-xs text-gray-300 mt-2">Aún quedan cuentas pendientes en el mundo físico del show...</p>
+            </div>
+            <button onclick="app.mostrarRankingFinal()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-black py-4 rounded-xl text-md tracking-wider shadow-lg transition">
+                ¿QUIERES SABER QUIÉN VA GANANDO?
+            </button>
+        </div>
+
+        <!-- Pantalla de Ranking Final -->
+        <div id="screen-ranking" class="hidden space-y-4">
+            <h2 class="text-lg font-black text-center text-pink-500 neon-glow">RANKING OFICIAL DEL SHOW</h2>
+            <div id="ranking-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            <button onclick="app.reiniciarApp()" class="w-full bg-purple-800 hover:bg-purple-700 text-white font-bold py-3 rounded-xl text-xs mt-4">
+                NUEVA PARTIDA
+            </button>
+        </div>
+
+    </main>
+
+    <!-- PIE -->
+    <footer class="text-[10px] text-gray-500 text-center">
+        BLOCKFALL © 2026 • Diseñado para el Show
+    </footer>
+
+    <!-- SCRIPT DE LÓGICA DE LA APP -->
+    <script>
+        // Mapeo exacto de QRs a Tramos de Puntuación
+        const QR_MAPPING = {
+            "BF_NV_1_SECRET": 1,
+            "BF_NV_2_SECRET": 2,
+            "BF_NV_3_SECRET": 3,
+            "BF_NV_4_SECRET": 4
+        };
+
+        // Rangos y Probabilidades por Tramo (Tus nuevas mates)
+        const PREMIOS_TRAMOS = {
+            1: { valores: [2, 3], pesos: [3, 3] }, // 50% dos, 50% tres
+            2: { valores: [5, 6, 7, 8, 9], pesos: [2, 3, 3, 2, 1] }, // 5 a 9 M$
+            3: { valores: [8, 9, 10, 11], pesos: [1, 1, 1, 1] }, // 8 a 11 M$
+            4: { valores: [12, 13, 14, 15], pesos: [1, 1, 1, 1] } // 12 a 15 M$
+        };
+
+        class BlockfallApp {
+            constructor() {
+                this.jugadores = [];
+                this.turnoActualIndex = 0;
+                this.html5QrCode = null;
+                this.premioQrTemporal = 0;
+                this.fichasTableroTemp = 0;
+            }
+
+            mostrarPantalla(id) {
+                ['screen-welcome', 'screen-setup', 'screen-hub', 'screen-scanner', 'screen-fichas', 'screen-pre-ranking', 'screen-ranking'].forEach(s => {
+                    document.getElementById(s).classList.add('hidden');
+                });
+                document.getElementById(id).classList.remove('hidden');
+            }
+
+            iniciarConfiguracion() {
+                this.mostrarPantalla('screen-setup');
+            }
+
+            setNumJugadores(num) {
+                const container = document.getElementById('player-inputs');
+                container.innerHTML = '';
+                for(let i=0; i<num; i++) {
+                    container.innerHTML += `
+                        <div>
+                            <label class="block text-xs font-bold text-cyan-300">JUGADOR 0${i+1}</label>
+                            <input type="text" maxlength="10" placeholder="Nombre (máx 10)" id="p_name_${i}" class="w-full bg-black/60 border border-cyan-500/50 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400">
+                        </div>
+                    `;
+                }
+                document.getElementById('btn-start-game').classList.remove('hidden');
+            }
+
+            comenzarShow() {
+                this.jugadores = [];
+                const inputs = document.querySelectorAll('[id^="p_name_"]');
+                inputs.forEach((input, index) => {
+                    let nombre = input.value.trim() || `Jugador ${index+1}`;
+                    this.jugadores.push({
+                        nombre: nombre.substring(0, 10),
+                        puntuacionTotal: 0
+                    });
+                });
+
+                this.turnoActualIndex = 0;
+                this.prepararTurnoJugador();
+            }
+
+            prepararTurnoJugador() {
+                if(this.turnoActualIndex >= this.jugadores.length) {
+                    // Todos han jugado su turno de escaneo en esta ronda
+                    this.mostrarPantalla('screen-pre-ranking');
+                    return;
+                }
+                const jugador = this.jugadores[this.turnoActualIndex];
+                document.getElementById('hub-player-turn').innerText = `TURNO DE: ${jugador.nombre.toUpperCase()}`;
+                document.getElementById('hub-player-score').innerText = `${jugador.puntuacionTotal} M$`;
+                this.mostrarPantalla('screen-hub');
+            }
+
+            lanzarEscaneo(tramoForzado) {
+                this.tramoSeleccionado = tramoForzado;
+                this.mostrarPantalla('screen-scanner');
+                
+                if(!this.html5QrCode) {
+                    this.html5QrCode = new Html5Qrcode("reader");
+                }
+                
+                this.html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
+                    (decodedText) => {
+                        this.procesarQRLeido(decodedText);
+                    },
+                    (errorMessage) => {
+                        // Error de lectura normal de fotograma, ignorar
+                    }
+                ).catch(err => {
+                    alert("No se pudo acceder a la cámara. Comprueba los permisos.");
+                    this.mostrarPantalla('screen-hub');
+                });
+            }
+
+            procesarQRLeido(texto) {
+                this.html5QrCode.stop().then(() => {
+                    let nivelCarta = QR_MAPPING[texto];
+                    if(!nivelCarta) {
+                        alert("¡Código QR no reconocido en el Show Blockfall!");
+                        this.mostrarPantalla('screen-hub');
+                        return;
+                    }
+
+                    // Calcular premio aleatorio ponderado según el tramo
+                    this.premioQrTemporal = this.calcularPremioTramo(this.tramoSeleccionado);
+                    this.fichasTableroTemp = 0;
+                    document.getElementById('input-fichas-count').innerText = "0";
+                    document.getElementById('result-qr-credits').innerText = `${this.premioQrTemporal} M$`;
+                    
+                    this.mostrarPantalla('screen-fichas');
+                }).catch(err => {
+                    console.error("Error al detener escáner", err);
+                });
+            }
+
+            calcularPremioTramo(tramo) {
+                const config = PREMIOS_TRAMOS[tramo] || PREMIOS_TRAMOS[1];
+                const pesoTotal = config.pesos.reduce((a, b) => a + b, 0);
+                let randomNum = Math.random() * pesoTotal;
+                let acumulado = 0;
+                for(let i=0; i<config.valores.length; i++) {
+                    acumulado += config.pesos[i];
+                    if(randomNum < acumulado) {
+                        return config.valores[i];
+                    }
+                }
+                return config.valores[0];
+            }
+
+            modificarFichasTablero(delta) {
+                this.fichasTableroTemp = Math.max(0, this.fichasTableroTemp + delta);
+                document.getElementById('input-fichas-count').innerText = this.fichasTableroTemp;
+            }
+
+            cancelarEscaneo() {
+                if(this.html5QrCode && this.html5QrCode.isScanning) {
+                    this.html5QrCode.stop().then(() => {
+                        this.mostrarPantalla('screen-hub');
+                    }).catch(() => { this.mostrarPantalla('screen-hub'); });
+                } else {
+                    this.mostrarPantalla('screen-hub');
+                }
+            }
+
+            confirmarTurnoJugador() {
+                // Sumamos el premio del QR + 1 M$ por cada ficha de tablero salvada (o según balanceo)
+                let totalGanadoTurno = this.premioQrTemporal + (this.fichasTableroTemp * 1);
+                this.jugadores[this.turnoActualIndex].puntuacionTotal += totalGanadoTurno;
+                
+                this.siguienteJugador();
+            }
+
+            siguienteJugador() {
+                this.turnoActualIndex++;
+                this.prepararTurnoJugador();
+            }
+
+            mostrarRankingFinal() {
+                this.jugadores.sort((a, b) => b.puntuacionTotal - a.puntuacionTotal);
+                const list = document.getElementById('ranking-list');
+                list.innerHTML = '';
+                
+                this.jugadores.forEach((j, index) => {
+                    let medal = index === 0 ? '👑' : `#${index+1}`;
+                    list.innerHTML += `
+                        <div class="bg-purple-900/40 border border-purple-500/50 p-3 rounded-xl flex justify-between items-center">
+                            <span class="font-bold text-sm"><span class="mr-2">${medal}</span> ${j.nombre}</span>
+                            <span class="text-pink-400 font-black">${j.puntuacionTotal} M$</span>
+                        </div>
+                    `;
+                });
+                this.mostrarPantalla('screen-ranking');
+            }
+
+            reiniciarApp() {
+                this.mostrarPantalla('screen-welcome');
+            }
+        }
+
+        const app = new BlockfallApp();
+    </script>
 </body>
 </html>
