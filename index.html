@@ -39,7 +39,7 @@
         <div id="screen-welcome" class="text-center space-y-6">
             <div class="py-6">
                 <span class="inline-block bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest animate-pulse">Temporada 2026</span>
-                <h2 class="text-xl font-bold mt-3 text-cyan-300">¡Sobrevive al bloque o piésdelo todo!</h2>
+                <h2 class="text-xl font-bold mt-3 text-cyan-300">¡Sobrevive al bloque o piérdelo todo!</h2>
             </div>
             <button onclick="app.iniciarConfiguracion()" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black py-4 rounded-xl text-lg shadow-lg tracking-wider transition transform active:scale-95">
                 INICIAR PARTIDA
@@ -48,7 +48,7 @@
 
         <!-- Pantalla de Configuración de Jugadores -->
         <div id="screen-setup" class="hidden space-y-4">
-            <h2 class="text-lg font-bold text-center text-cyan-400">NÚMERO DE JUGADORES (2-6)</h2>
+            <h2 class="text-lg font-bold text-center text-cyan-400">NÚMERO DE JUGADORES</h2>
             <div class="grid grid-cols-5 gap-2">
                 <button onclick="app.setNumJugadores(2)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">2</button>
                 <button onclick="app.setNumJugadores(3)" class="bg-purple-800 hover:bg-cyan-500 hover:text-black py-3 rounded-xl font-bold">3</button>
@@ -65,28 +65,29 @@
         <!-- Pantalla de Selección de Ronda / Menú Principal de Turno -->
         <div id="screen-hub" class="hidden space-y-4">
             <div class="text-center bg-black/40 p-3 rounded-xl border border-cyan-500/30">
+                <p id="hub-round-indicator" class="text-xs font-bold text-pink-400 tracking-wider mb-1">RONDA 1 DE 3</p>
                 <p id="hub-player-turn" class="text-sm text-cyan-300 font-bold">TURNO DE: JUGADOR</p>
                 <p class="text-xs text-gray-400 mt-1">Créditos acumulados: <span id="hub-player-score" class="text-pink-400 font-bold">0 M$</span></p>
             </div>
 
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Selecciona tu Ronda de Retirada / Escaneo</h3>
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest text-center">Selecciona tu Tramo de Retirada / Escaneo</h3>
             
             <div class="space-y-2">
                 <button onclick="app.lanzarEscaneo(1)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
                     <span class="font-bold">RONDAS 1 - 2</span>
-                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 1 (QRs 1-2)</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 1 (2-3 M$)</span>
+                </button>
+                <button onclick="app.lanzarEscaneo(2)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
+                    <span class="font-bold">RONDAS 3 - 4 - 5</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 2 (5-9 M$)</span>
                 </button>
                 <button onclick="app.lanzarEscaneo(3)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
-                    <span class="font-bold">RONDAS 3 - 4 - 5</span>
-                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 2 (QRs 3)</span>
-                </button>
-                <button onclick="app.lanzarEscaneo(6)" class="w-full bg-purple-900/60 hover:bg-purple-800 border border-purple-500 p-3 rounded-xl flex justify-between items-center transition">
                     <span class="font-bold">RONDAS 6 - 7</span>
-                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 3 (QRs 7)</span>
+                    <span class="text-xs bg-purple-600 px-2 py-1 rounded">Tramo 3 (8-11 M$)</span>
                 </button>
-                <button onclick="app.lanzarEscaneo(8)" class="w-full bg-pink-900/60 hover:bg-pink-800 border border-pink-500 p-3 rounded-xl flex justify-between items-center transition">
+                <button onclick="app.lanzarEscaneo(4)" class="w-full bg-pink-900/60 hover:bg-pink-800 border border-pink-500 p-3 rounded-xl flex justify-between items-center transition">
                     <span class="font-bold text-pink-300">RONDA 8 (FINAL)</span>
-                    <span class="text-xs bg-pink-600 px-2 py-1 rounded">Tramo 4 (QRs 8)</span>
+                    <span class="text-xs bg-pink-600 px-2 py-1 rounded">Tramo 4 (12-15 M$)</span>
                 </button>
             </div>
 
@@ -126,10 +127,21 @@
             </button>
         </div>
 
+        <!-- Pantalla de Transición entre Rondas -->
+        <div id="screen-inter-round" class="hidden text-center space-y-6 py-4">
+            <div class="bg-purple-900/40 p-4 rounded-xl border border-purple-500">
+                <h3 id="inter-round-title" class="text-lg font-bold text-cyan-300">¡FIN DE LA RONDA!</h3>
+                <p class="text-xs text-gray-300 mt-2">Preparad las fichas y los escudos para la siguiente fase del show.</p>
+            </div>
+            <button onclick="app.iniciarSiguienteRonda()" class="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black py-4 rounded-xl text-md tracking-wider shadow-lg transition">
+                COMENZAR SIGUIENTE RONDA
+            </button>
+        </div>
+
         <!-- Pantalla de Pregunta Final (Ranking) -->
         <div id="screen-pre-ranking" class="hidden text-center space-y-6 py-4">
             <div class="bg-pink-950/40 p-4 rounded-xl border border-pink-500">
-                <h3 class="text-lg font-bold text-pink-400">¡FIN DE LA RONDA / PARTIDA!</h3>
+                <h3 class="text-lg font-bold text-pink-400">¡FIN DE LAS 3 RONDAS!</h3>
                 <p class="text-xs text-gray-300 mt-2">Aún quedan cuentas pendientes en el mundo físico del show...</p>
             </div>
             <button onclick="app.mostrarRankingFinal()" class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-black py-4 rounded-xl text-md tracking-wider shadow-lg transition">
@@ -155,7 +167,7 @@
 
     <!-- SCRIPT DE LÓGICA DE LA APP -->
     <script>
-        // Mapeo exacto de QRs a Tramos de Puntuación
+        // Mapeo exacto de QRs a Tramos de Puntuación (1 al 4)
         const QR_MAPPING = {
             "BF_NV_1_SECRET": 1,
             "BF_NV_2_SECRET": 2,
@@ -163,25 +175,28 @@
             "BF_NV_4_SECRET": 4
         };
 
-        // Rangos y Probabilidades por Tramo (Tus nuevas mates)
+        // Rangos y Probabilidades estrictos por Tramo
         const PREMIOS_TRAMOS = {
-            1: { valores: [2, 3], pesos: [3, 3] }, // 50% dos, 50% tres
-            2: { valores: [5, 6, 7, 8, 9], pesos: [2, 3, 3, 2, 1] }, // 5 a 9 M$
-            3: { valores: [8, 9, 10, 11], pesos: [1, 1, 1, 1] }, // 8 a 11 M$
-            4: { valores: [12, 13, 14, 15], pesos: [1, 1, 1, 1] } // 12 a 15 M$
+            1: { valores: [2, 3], pesos: [3, 3] }, // Tramo 1: 2 a 3 M$
+            2: { valores: [5, 6, 7, 8, 9], pesos: [2, 3, 3, 2, 1] }, // Tramo 2: 5 a 9 M$ (estricto máx 9)
+            3: { valores: [8, 9, 10, 11], pesos: [1, 1, 1, 1] }, // Tramo 3: 8 a 11 M$
+            4: { valores: [12, 13, 14, 15], pesos: [1, 1, 1, 1] } // Tramo 4: 12 a 15 M$
         };
 
         class BlockfallApp {
             constructor() {
                 this.jugadores = [];
                 this.turnoActualIndex = 0;
+                this.rondaActual = 1;
+                this.maxRondas = 3;
                 this.html5QrCode = null;
                 this.premioQrTemporal = 0;
                 this.fichasTableroTemp = 0;
+                this.tramoSeleccionado = 1;
             }
 
             mostrarPantalla(id) {
-                ['screen-welcome', 'screen-setup', 'screen-hub', 'screen-scanner', 'screen-fichas', 'screen-pre-ranking', 'screen-ranking'].forEach(s => {
+                ['screen-welcome', 'screen-setup', 'screen-hub', 'screen-scanner', 'screen-fichas', 'screen-inter-round', 'screen-pre-ranking', 'screen-ranking'].forEach(s => {
                     document.getElementById(s).classList.add('hidden');
                 });
                 document.getElementById(id).classList.remove('hidden');
@@ -216,20 +231,36 @@
                     });
                 });
 
+                this.rondaActual = 1;
                 this.turnoActualIndex = 0;
                 this.prepararTurnoJugador();
             }
 
             prepararTurnoJugador() {
+                // Si el índice supera los jugadores, hemos terminado la ronda actual
                 if(this.turnoActualIndex >= this.jugadores.length) {
-                    // Todos han jugado su turno de escaneo en esta ronda
-                    this.mostrarPantalla('screen-pre-ranking');
+                    if(this.rondaActual < this.maxRondas) {
+                        // Mostrar pantalla de transición a la siguiente ronda
+                        document.getElementById('inter-round-title').innerText = `¡FIN DE LA RONDA ${this.rondaActual}!`;
+                        this.mostrarPantalla('screen-inter-round');
+                    } else {
+                        // Fin de las 3 rondas
+                        this.mostrarPantalla('screen-pre-ranking');
+                    }
                     return;
                 }
+
                 const jugador = this.jugadores[this.turnoActualIndex];
+                document.getElementById('hub-round-indicator').innerText = `RONDA ${this.rondaActual} DE ${this.maxRondas}`;
                 document.getElementById('hub-player-turn').innerText = `TURNO DE: ${jugador.nombre.toUpperCase()}`;
                 document.getElementById('hub-player-score').innerText = `${jugador.puntuacionTotal} M$`;
                 this.mostrarPantalla('screen-hub');
+            }
+
+            iniciarSiguienteRonda() {
+                this.rondaActual++;
+                this.turnoActualIndex = 0;
+                this.prepararTurnoJugador();
             }
 
             lanzarEscaneo(tramoForzado) {
@@ -264,7 +295,7 @@
                         return;
                     }
 
-                    // Calcular premio aleatorio ponderado según el tramo
+                    // Calcular premio aleatorio ponderado según el tramo seleccionado
                     this.premioQrTemporal = this.calcularPremioTramo(this.tramoSeleccionado);
                     this.fichasTableroTemp = 0;
                     document.getElementById('input-fichas-count').innerText = "0";
@@ -306,7 +337,7 @@
             }
 
             confirmarTurnoJugador() {
-                // Sumamos el premio del QR + 1 M$ por cada ficha de tablero salvada (o según balanceo)
+                // Sumamos el premio del QR + 1 M$ por cada ficha de tablero salvada
                 let totalGanadoTurno = this.premioQrTemporal + (this.fichasTableroTemp * 1);
                 this.jugadores[this.turnoActualIndex].puntuacionTotal += totalGanadoTurno;
                 
