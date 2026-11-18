@@ -98,7 +98,7 @@
 
         <!-- Pantalla de Escaneo QR -->
         <div id="screen-scanner" class="hidden space-y-4 text-center">
-            <h3 class="text-sm font-bold text-cyan-400">ESCANEA TU CARTA DE TRAMO</h3>
+            <h3 id="scanner-instruction" class="text-sm font-bold text-cyan-400">ESCANEA TU CARTA</h3>
             <div id="reader" class="w-full rounded-xl overflow-hidden border border-cyan-500"></div>
             <button onclick="app.cancelarEscaneo()" class="w-full bg-red-600/80 hover:bg-red-600 text-white font-bold py-2 rounded-xl text-xs">
                 Cancelar Escaneo
@@ -178,7 +178,7 @@
         // Rangos y Probabilidades estrictos por Tramo
         const PREMIOS_TRAMOS = {
             1: { valores: [2, 3], pesos: [3, 3] }, // Tramo 1: 2 a 3 M$
-            2: { valores: [5, 6, 7, 8, 9], pesos: [2, 3, 3, 2, 1] }, // Tramo 2: 5 a 9 M$ (estricto máx 9)
+            2: { valores: [5, 6, 7, 8, 9], pesos: [2, 3, 3, 2, 1] }, // Tramo 2: 5 a 9 M$
             3: { valores: [8, 9, 10, 11], pesos: [1, 1, 1, 1] }, // Tramo 3: 8 a 11 M$
             4: { valores: [12, 13, 14, 15], pesos: [1, 1, 1, 1] } // Tramo 4: 12 a 15 M$
         };
@@ -237,14 +237,11 @@
             }
 
             prepararTurnoJugador() {
-                // Si el índice supera los jugadores, hemos terminado la ronda actual
                 if(this.turnoActualIndex >= this.jugadores.length) {
                     if(this.rondaActual < this.maxRondas) {
-                        // Mostrar pantalla de transición a la siguiente ronda
                         document.getElementById('inter-round-title').innerText = `¡FIN DE LA RONDA ${this.rondaActual}!`;
                         this.mostrarPantalla('screen-inter-round');
                     } else {
-                        // Fin de las 3 rondas
                         this.mostrarPantalla('screen-pre-ranking');
                     }
                     return;
@@ -265,6 +262,7 @@
 
             lanzarEscaneo(tramoForzado) {
                 this.tramoSeleccionado = tramoForzado;
+                document.getElementById('scanner-instruction').innerText = `ESCANEA CARTA TRAMO ${tramoForzado}`;
                 this.mostrarPantalla('screen-scanner');
                 
                 if(!this.html5QrCode) {
@@ -288,14 +286,23 @@
 
             procesarQRLeido(texto) {
                 this.html5QrCode.stop().then(() => {
-                    let nivelCarta = QR_MAPPING[texto];
-                    if(!nivelCarta) {
+                    let nivelEscaneado = QR_MAPPING[texto];
+                    
+                    if(!nivelEscaneado) {
                         alert("¡Código QR no reconocido en el Show Blockfall!");
                         this.mostrarPantalla('screen-hub');
                         return;
                     }
 
-                    // Calcular premio aleatorio ponderado según el tramo seleccionado
+                    // --- VALIDACIÓN ANTITRAMPAS ---
+                    // Comprobamos que la carta escaneada coincida exactamente con el tramo seleccionado en la app
+                    if(nivelEscaneado !== this.tramoSeleccionado) {
+                        alert(`¡ERROR DE TRAMO! Has seleccionado el Tramo ${this.tramoSeleccionado} en la app pero has escaneado una carta del Tramo ${nivelEscaneado}. ¡Inténtalo de nuevo con la carta correcta!`);
+                        this.mostrarPantalla('screen-hub');
+                        return;
+                    }
+
+                    // Si coincide, calculamos el premio aleatorio ponderado de ese tramo
                     this.premioQrTemporal = this.calcularPremioTramo(this.tramoSeleccionado);
                     this.fichasTableroTemp = 0;
                     document.getElementById('input-fichas-count').innerText = "0";
@@ -337,7 +344,6 @@
             }
 
             confirmarTurnoJugador() {
-                // Sumamos el premio del QR + 1 M$ por cada ficha de tablero salvada
                 let totalGanadoTurno = this.premioQrTemporal + (this.fichasTableroTemp * 1);
                 this.jugadores[this.turnoActualIndex].puntuacionTotal += totalGanadoTurno;
                 
